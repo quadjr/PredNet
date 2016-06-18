@@ -33,7 +33,7 @@ xp = cuda.cupy if args.gpu >= 0 else np
 inWidth = 160
 inHeight = 128
 inChannel = 3
-prednet = net.PredNet(inWidth, inHeight, (inChannel,48,96,192))
+prednet = net.PredNet(inWidth, inHeight, (inChannel,48,96,192), (24,48,96,192))
 model = L.Classifier(prednet, lossfun=mean_squared_error)
 model.compute_accuracy = False
 optimizer = optimizers.Adam()

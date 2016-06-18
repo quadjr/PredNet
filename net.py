@@ -117,7 +117,7 @@ class ConvLSTM(chainer.Chain):
         return y
 
 class PredNet(chainer.Chain):
-    def __init__(self, width, height, channels, batchSize = 1):
+    def __init__(self, width, height, channels, r_channels, batchSize = 1):
         super(PredNet, self).__init__()
         self.layers = len(channels)
         self.sizes = [None]*self.layers
@@ -131,14 +131,14 @@ class PredNet(chainer.Chain):
             if nth != 0:
                 self.add_link('ConvA' + str(nth), L.Convolution2D(channels[nth - 1] *2, channels[nth], 3, pad=1))
             
-            self.add_link('ConvP' + str(nth), L.Convolution2D(channels[nth], channels[nth], 3, pad=1))
+            self.add_link('ConvP' + str(nth), L.Convolution2D(r_channels[nth], channels[nth], 3, pad=1))
             
             if nth == self.layers - 1:
                 self.add_link('ConvLSTM' + str(nth), ConvLSTM(self.sizes[nth][3], self.sizes[nth][2],
-                               (self.sizes[nth][1] * 2, ), self.sizes[nth][1]))
+                               (self.sizes[nth][1] * 2, ), r_channels[nth]))
             else:
                 self.add_link('ConvLSTM' + str(nth), ConvLSTM(self.sizes[nth][3], self.sizes[nth][2],
-                               (self.sizes[nth][1] * 2, self.sizes[nth + 1][1]), self.sizes[nth][1]))
+                               (self.sizes[nth][1] * 2, r_channels[nth + 1]), r_channels[nth]))
                 
         self.reset_state()
 
