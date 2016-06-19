@@ -25,6 +25,7 @@ parser.add_argument('--resume', default='',
 parser.add_argument('--test', dest='test', action='store_true')
 parser.set_defaults(test=False)
 args = parser.parse_args()
+
 if args.gpu >= 0:
     cuda.check_cuda_available()
 xp = cuda.cupy if args.gpu >= 0 else np
@@ -79,40 +80,73 @@ def writeImage(image, path):
 
 imagelist = load_image_list(args.train, args.root)
 
-
-for num in range(0, 10000):
-    bprop_len = 20
-    prednet.reset_state()
-    model.zerograds()
-    loss = 0
-
-    batchSize = 1
-    x_batch = np.ndarray((batchSize, inChannel, inHeight, inWidth), dtype=np.float32)
-    y_batch = np.ndarray((batchSize, inChannel, inHeight, inWidth), dtype=np.float32)
-    x_batch[0] = read_image(imagelist[0]);
-    for i in range(1, len(imagelist)):
-        y_batch[0] = read_image(imagelist[i]);
-        loss += model(chainer.Variable(xp.asarray(x_batch)),
-                      chainer.Variable(xp.asarray(y_batch)))
-
-        print('i:' + str(i))
-        if (i + 1) % bprop_len == 0:
-            model.zerograds()
-            loss.backward()
+if args.test == True:
+        prednet.reset_state()
+        model.zerograds()
+        loss = 0
+        batchSize = 1
+        x_batch = np.ndarray((batchSize, inChannel, inHeight, inWidth), dtype=np.float32)
+        y_batch = np.ndarray((batchSize, inChannel, inHeight, inWidth), dtype=np.float32)
+        for i in range(0, len(imagelist)):
+            print('frameNo:' + str(i))
+            x_batch[0] = read_image(imagelist[i])
+            loss += model(chainer.Variable(xp.asarray(x_batch)),
+                          chainer.Variable(xp.asarray(y_batch)))
             loss.unchain_backward()
             loss = 0
-            optimizer.update()
             model.to_cpu()
-            writeImage(x_batch[0].copy(), 'out/' + str(num) + '_' + str(i) + 'a.jpg')
-            writeImage(model.y.data[0].copy(), 'out/' + str(num) + '_' + str(i) + 'b.jpg')
-            writeImage(y_batch[0].copy(), 'out/' + str(num) + '_' + str(i) + 'c.jpg')
+            writeImage(x_batch[0].copy(), 'out/' + str(i) + 'x.jpg')
+            writeImage(model.y.data[0].copy(), 'out/' + str(i) + 'y.jpg')
             model.to_gpu()
-            print('loss:' + str(float(model.loss.data)))
 
-        if i == 1 and (num%10) == 0:
-            print('save the model')
-            serializers.save_npz('out/' + str(num) + '.model', model)
-            print('save the optimizer')
-            serializers.save_npz('out/' + str(num) + '.state', optimizer)
+        model.to_cpu()
+        x_batch[0] = model.y.data[0].copy()
+        model.to_gpu()
+        for i in range(len(imagelist), len(imagelist) + 100):
+            print('extended frameNo:' + str(i))
+            loss += model(chainer.Variable(xp.asarray(x_batch)),
+                          chainer.Variable(xp.asarray(y_batch)))
+            loss.unchain_backward()
+            loss = 0
+            model.to_cpu()
+            writeImage(model.y.data[0].copy(), 'out/' + str(i) + 'y.jpg')
+            x_batch[0] = model.y.data[0].copy()
+            model.to_gpu()
 
-        x_batch[0] = y_batch[0]
+else:
+    for num in range(0, 10000):
+        bprop_len = 20
+        prednet.reset_state()
+        model.zerograds()
+        loss = 0
+
+        batchSize = 1
+        x_batch = np.ndarray((batchSize, inChannel, inHeight, inWidth), dtype=np.float32)
+        y_batch = np.ndarray((batchSize, inChannel, inHeight, inWidth), dtype=np.float32)
+        x_batch[0] = read_image(imagelist[0]);
+        for i in range(1, len(imagelist)):
+            y_batch[0] = read_image(imagelist[i]);
+            loss += model(chainer.Variable(xp.asarray(x_batch)),
+                          chainer.Variable(xp.asarray(y_batch)))
+
+            print('frameNo:' + str(i))
+            if (i + 1) % bprop_len == 0:
+                model.zerograds()
+                loss.backward()
+                loss.unchain_backward()
+                loss = 0
+                optimizer.update()
+                model.to_cpu()
+                writeImage(x_batch[0].copy(), 'out/' + str(num) + '_' + str(i) + 'a.jpg')
+                writeImage(model.y.data[0].copy(), 'out/' + str(num) + '_' + str(i) + 'b.jpg')
+                writeImage(y_batch[0].copy(), 'out/' + str(num) + '_' + str(i) + 'c.jpg')
+                model.to_gpu()
+                print('loss:' + str(float(model.loss.data)))
+
+            if i == 1 and (num%10) == 0:
+                print('save the model')
+                serializers.save_npz('out/' + str(num) + '.model', model)
+                print('save the optimizer')
+                serializers.save_npz('out/' + str(num) + '.state', optimizer)
+
+            x_batch[0] = y_batch[0]
