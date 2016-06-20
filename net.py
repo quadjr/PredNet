@@ -32,6 +32,8 @@ class EltFilter(chainer.Link):
 
 class ConvLSTM(chainer.Chain):
     def __init__(self, width, height, in_channels, out_channels, batchSize = 1):
+        self.state_size = (batchSize, out_channels, height, width)
+        self.in_channels = in_channels
         super(ConvLSTM, self).__init__(
             h_i=L.Convolution2D(out_channels, out_channels, 3, pad=1),
             c_i=EltFilter(width, height, out_channels, nobias=True),
@@ -44,15 +46,14 @@ class ConvLSTM(chainer.Chain):
             h_o=L.Convolution2D(out_channels, out_channels, 3, pad=1),
             c_o=EltFilter(width, height, out_channels, nobias=True),
         )
-        self.state_size = (batchSize, out_channels, height, width)
-        self.reset_state()
-        self.in_channels = in_channels
 
         for nth in range(len(self.in_channels)):
             self.add_link('x_i' + str(nth), L.Convolution2D(self.in_channels[nth], out_channels, 3, pad=1, nobias=True))
             self.add_link('x_f' + str(nth), L.Convolution2D(self.in_channels[nth], out_channels, 3, pad=1, nobias=True))
             self.add_link('x_c' + str(nth), L.Convolution2D(self.in_channels[nth], out_channels, 3, pad=1, nobias=True))
             self.add_link('x_o' + str(nth), L.Convolution2D(self.in_channels[nth], out_channels, 3, pad=1, nobias=True))
+            
+        self.reset_state()
 
     def to_cpu(self):
         super(ConvLSTM, self).to_cpu()
@@ -117,8 +118,11 @@ class ConvLSTM(chainer.Chain):
         return y
 
 class PredNet(chainer.Chain):
-    def __init__(self, width, height, channels, r_channels, batchSize = 1):
+    def __init__(self, width, height, channels, r_channels = None, batchSize = 1):
         super(PredNet, self).__init__()
+        if r_channels is None:
+            r_channels = channels
+        
         self.layers = len(channels)
         self.sizes = [None]*self.layers
         w,h = width, height
