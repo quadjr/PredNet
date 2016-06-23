@@ -11,12 +11,16 @@ This is a implimentation of [PredNet][] on chainer.
 *cuDNN v5  
 
 #Demo
-1. Prepare Dataset  
+1. git clone  
+$ git clone https://github.com/quadjr/PredNet.git  
+$ cd PredNet  
+
+2. Prepare Dataset  
 This command will download The KITTI Dataset(about 47GB), unzip, and make image lists.  
 $ ./scripts/prepare_kitti.sh  
 You can intterupt and resume downloading.  
 
-2. Train
+3. Train  
 On a CPU  
 $ python main.py -i dataset/train_list.txt  
 On a GPU  
@@ -25,7 +29,7 @@ $ python main.py -i dataset/train_list.txt -g 0
 Model files and some images will be generated in models/ and images/ directory.   
 Image suffix means x (input), y (predicted), z (correct).  
 
-3. Test
+4. Test  
 $ python main.py -i dataset/test_list.txt --test --initmodel models/???.model  
 Plase specify the model file with option --initialmodel.  
 Test result will be generated in images/ directory.  
