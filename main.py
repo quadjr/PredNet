@@ -31,7 +31,7 @@ parser.add_argument('--offset', '-o', default='0,0',
                     help='Center offset of clipping input image (pixels)')
 parser.add_argument('--ext', '-e', default=100, type=int,
                     help='Extended prediction on test (frames)')
-parser.add_argument('--bprop', default=20, type=int,
+parser.add_argument('--bprop', default=10, type=int,
                     help='Back propagation length (frames)')
 parser.add_argument('--save', default=10000, type=int,
                     help='Period of save model and state (frames)')
@@ -70,6 +70,9 @@ optimizer.setup(model)
 if args.gpu >= 0:
     cuda.get_device(args.gpu).use()
     model.to_gpu()
+    print('Running on a GPU')
+else:
+    print('Running on a CPU')
 
 # Init/Resume
 if args.initmodel:
@@ -79,6 +82,10 @@ if args.resume:
     print('Load optimizer state from', args.resume)
     serializers.load_npz(args.resume, optimizer)
 
+if not os.path.exists('models'):
+    os.makedirs('models')
+if not os.path.exists('images'):
+    os.makedirs('images')
 
 def load_list(path, root):
     tuples = []
@@ -125,8 +132,8 @@ if args.test == True:
             loss.unchain_backward()
             loss = 0
             if args.gpu >= 0:model.to_cpu()
-            write_image(x_batch[0].copy(), 'images/' + str(i) + 'x.jpg')
-            write_image(model.y.data[0].copy(), 'images/' + str(i) + 'y.jpg')
+            write_image(x_batch[0].copy(), 'images/test' + str(i) + 'x.jpg')
+            write_image(model.y.data[0].copy(), 'images/test' + str(i) + 'y.jpg')
             if args.gpu >= 0:model.to_gpu()
 
         if args.gpu >= 0:model.to_cpu()
@@ -139,7 +146,7 @@ if args.test == True:
             loss.unchain_backward()
             loss = 0
             if args.gpu >= 0:model.to_cpu()
-            write_image(model.y.data[0].copy(), 'images/' + str(i) + 'y.jpg')
+            write_image(model.y.data[0].copy(), 'images/test' + str(i) + 'y.jpg')
             x_batch[0] = model.y.data[0].copy()
             if args.gpu >= 0:model.to_gpu()
 
